@@ -147,7 +147,7 @@ class _NewComp extends State<NewCompState> {
                         content: TextField(
                             controller: _userAddCompController,
                             decoration: InputDecoration(
-                              hintText: "House name",
+                              hintText: "Component name",
                               errorText: errorText == "" ? null : errorText,)
                         ),
                         actions: <Widget>[
@@ -182,6 +182,69 @@ class _NewComp extends State<NewCompState> {
             ),
           ]
       ),
+      body: ListView (/* ReorderableListView(
+          onReorder: (int oldIndex, int newIndex) {
+            setState(() {
+              String strStore = houseList.houseName[oldIndex];
+              Comps strComp = house.roomComps[oldIndex];
+
+              if (newIndex > oldIndex) {
+                newIndex -=1;
+              }
+              house.roomComps.removeAt(oldIndex);
+              house.roomNames.removeAt(oldIndex);
+              house.roomComps.insert(newIndex, strComp);
+              house.roomNames.insert(newIndex, strStore);
+
+            });
+          },*/
+        children: <Widget> [
+          for (int index = 0; index < advCompsAdd.length; index++)
+            Dismissible(
+                key: UniqueKey(),
+                onDismissed: (direction) {
+                  setState(() {
+                    //house.roomNames.removeAt(index);
+                    //houseList.houseName.removeAt(index);
+                    //houseList.houses.removeAt(index);
+                    //house.roomComps.removeAt(index);
+                    changes.remove(advCompsAdd[index]);
+                    advCompsAdd.remove(advCompsAdd[index]);
+                    globals.advComps.remove(advCompsAdd[index]);
+                  });
+                },
+                background: Container(color: Colors.red),
+                confirmDismiss: (DismissDirection direction) async {
+                  return await showDialog(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return AlertDialog(
+                        title: const Text("Delete Confirmation"),
+                        content: const Text("Are you sure you want to delete this component?"),
+                        actions: <Widget>[
+                          FlatButton(
+                              onPressed: () => Navigator.of(context).pop(true),
+                              child: const Text("Delete")
+                          ),
+                          FlatButton(
+                            onPressed: () => Navigator.of(context).pop(false),
+                            child: const Text("Cancel"),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                },
+                child: ListTile(
+                    key: Key('$index'),
+                    onTap: () => _setSelected(advCompsAdd[index]),
+                    title: Text('${advCompsAdd[index]}'),
+                    tileColor: _isSelected(advCompsAdd[index]) ? Colors.green : Colors.white,
+                )
+            )
+        ],
+      ),//;//);
+/*
       body: ListView.builder(
           itemCount: advCompsAdd.length,
           itemBuilder: (BuildContext context, int index) {
@@ -192,6 +255,7 @@ class _NewComp extends State<NewCompState> {
             );
           }
       ),
+      */
       floatingActionButton: FloatingActionButton(
         onPressed: _confirmComps,
         tooltip: 'Confirm changes',

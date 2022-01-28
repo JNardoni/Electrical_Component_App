@@ -1,23 +1,35 @@
 part of 'main.dart';
 
-class House extends _MyHomePageState {
+
+//HouseStruct
+//Stores two lists, and an int
+//int: keeps track of how many houses are currently in the struct
+//String list: Keeps a name of all houses added to the struct
+//Rooms: Keeps a track of all rooms in each house that has been added to the house list
+
+class HouseStruct extends _MyHomePageState {
 
   int numHouses = 0;
   List<String> houseName = [];
-  List<Rooms> houseRooms = [];
+  List<Rooms> houses = [];
 
-  House() {
-    this.houseName.add("");
-    Rooms rooms = new Rooms("");
-    this.houseRooms.add(rooms);
+  HouseStruct() {
+    //this.houseName.add("");
+    //Rooms rooms = new Rooms("");
+    //this.houses.add(rooms);
+    //
   }
 
+  //Houses is built from the top down. Position 0 is always the newest house.
   void addHouse(String name) {
-    this.numHouses += 1;
-    this.houseName.add(name);
-    Rooms rooms = new Rooms(name);
-    this.houseRooms.add(rooms);
 
-    currentHouse = this.numHouses;
+    this.houseName.insert(0, name);
+
+    Rooms rooms = new Rooms(name);
+    this.houses.insert(0, rooms);
+
+    currentHouse = 0;
+    this.numHouses += 1;
+
   }
 }

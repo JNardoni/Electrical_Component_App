@@ -20,6 +20,10 @@ class RoomSelectedState extends StatefulWidget {
 //3 Tabs with a list of components: Basic, Advanced, Adv Text
 class _RoomSelected extends State<RoomSelectedState> with TickerProviderStateMixin {
 
+  //TextEditingController _compDescriptController = TextEditingController();
+
+  Rooms house = houseList.houses[currentHouse];
+
   late TabController _tabController;
   TextEditingController advTextController = TextEditingController(text: '');
 
@@ -74,6 +78,12 @@ class _RoomSelected extends State<RoomSelectedState> with TickerProviderStateMix
     Navigator.pushNamed(context, NewCompState.routeName);
   }
 
+/*
+  void _descriptionChanged(String descript, int index) {
+    house.roomComps[currentRoom].advCompDescript.remove(index);
+    house.roomComps[currentRoom].advCompDescript.insert(index, descript);
+
+  }*/
 
   @override
   Widget build(BuildContext context) {
@@ -201,7 +211,7 @@ class _RoomSelected extends State<RoomSelectedState> with TickerProviderStateMix
                                         Container(
                                           alignment: Alignment.centerLeft,
                                           height: 25,
-                                          margin: const EdgeInsets.fromLTRB(2, 1, 0, 1),
+                                          margin: const EdgeInsets.fromLTRB(4, 1, 0, 1),
                                           child: Text('${house.roomComps[currentRoom].advCompNames[index]}',
                                             //textAlign: TextAlign.center,
                                             style: TextStyle(fontSize: 21),
@@ -211,16 +221,20 @@ class _RoomSelected extends State<RoomSelectedState> with TickerProviderStateMix
                                         Container(
                                           width: 150,
                                           height: 25,
-                                          margin: const EdgeInsets.fromLTRB(15, 1, 0, 1),
+                                          margin: const EdgeInsets.fromLTRB(15, 29, 0, 1),
                                           child: TextFormField(
-
-                                            //onChanged: ; //house.roomComps[currentRoom].advCompNames[] =
+                                            initialValue: house.roomComps[currentRoom].advCompDescript[index],
+                                            onChanged: (text) {
+                                              //house.roomComps[currentRoom].advCompDescript.remove(index);
+                                              house.roomComps[currentRoom].advCompDescript[index] = '$text';
+                                            },
                                             //textAlign: TextAlign.center,
                                             //style: TextStyle(fontSize: 22),
                                             //textAlign: TextAlign.left,
                                               keyboardType: TextInputType.text,
                                               decoration: InputDecoration(
-                                                labelText: globals.advCompsTextDefault[0],
+                                                hintText: "Description",
+                                                //labelText: "Description", //house.roomComps[currentRoom].advCompDescript[index],
                                               )
                                           ),
                                         ),

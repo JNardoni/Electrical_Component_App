@@ -18,6 +18,8 @@ class NewCompState extends StatefulWidget {
 //Allows user to select multiple components, and add them to the main page
 class _NewComp extends State<NewCompState> {
 
+  Rooms house = houseList.houses[currentHouse];
+
   List<String> advCompsAdd = [];
   List<String> changes = [];
 
@@ -55,6 +57,7 @@ class _NewComp extends State<NewCompState> {
     for(int i = 0; i < changes.length; i++) {
       house.roomComps[currentRoom].advCompNames.add(changes[i]);
       house.roomComps[currentRoom].advCompNum.add(0);
+      house.roomComps[currentRoom].advCompDescript.add("");
     }
 
     Navigator.of(context).pop();
@@ -76,7 +79,7 @@ class _NewComp extends State<NewCompState> {
 
     if (i == 1) {
       globals.advComps.add(_userAddCompController.text);
-      globals.advCompsText.add("");
+      //globals.advCompsText.add("");
     }
 
     _userAddCompController.text = "";
@@ -177,23 +180,6 @@ class _NewComp extends State<NewCompState> {
                   );
                 }
             ),
-            /*      PopupMenuButton<String>(
-              onSelected: _select,
-              //     icon: Icon(Icons.settings,
-              //     color: Colors.white),
-              itemBuilder: (BuildContext context) {
-                return {
-                  'Help',
-                  'Settings',
-                  'About'
-                }.map((String choice) {
-                  return PopupMenuItem<String> (
-                    value: choice,
-                    child: Text(choice),
-                  );
-                }).toList();
-              },
-            ),*/
           ]
       ),
       body: ListView.builder(
@@ -214,5 +200,4 @@ class _NewComp extends State<NewCompState> {
     );
   }
 }
-
 

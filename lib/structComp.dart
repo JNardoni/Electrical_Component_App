@@ -14,6 +14,7 @@ class Comps extends _MyHomePageState {
   var basicCompNum = [];
 
   var advCompNames = [];
+  var advCompDescript = [];
   var advCompNum = [];
 
   var advTextNames = [];

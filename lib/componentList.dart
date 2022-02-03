@@ -4,95 +4,250 @@ part of 'main.dart';
 //::::::::::::::::::::::::::::::::ON ROOM SELECTION::::::::::::::::::::::::::
 
 //Calls when a room is selected
-class RoomSelectedState extends StatefulWidget {
-  RoomSelectedState({Key? key, required this.title}) : super(key: key);
+class CompsListState extends StatefulWidget {
+  CompsListState({Key? key, required this.title}) : super(key: key);
 
   static const String routeName = "/RoomSelected";
 
   final String title;
 
   @override
-  _RoomSelected createState() => _RoomSelected();
+  _CompsList createState() => _CompsList();
 }
-
 
 //Opened when a room is selected. Shows components in the room
 //3 Tabs with a list of components: Basic, Advanced, Adv Text
-class _RoomSelected extends State<RoomSelectedState> with TickerProviderStateMixin {
+class _CompsList extends State<CompsListState> with TickerProviderStateMixin {
 
-  //TextEditingController _compDescriptController = TextEditingController();
-
-  Rooms house = houseList.houses[currentHouse];
-
+  final nameController = TextEditingController();
   late TabController _tabController;
-  TextEditingController advTextController = TextEditingController(text: '');
+  late Comps _comps;
+
+  String roomName = "";
+  bool isEditing = false;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync:this);
+
+    _tabController = TabController(length: 2, vsync: this);
+    //  this.dbComps = DatabaseComps();
+    //  this.dbComps.initCompsDB().whenComplete(() async {
+    setState(() {});
+
   }
 
-  void _add(int compNum, int tab) {
-    setState(() {
-      if (tab == 0) {
-        if (house.roomComps[currentRoom].basicCompNum[compNum] < 99) {
-          house.roomComps[currentRoom].basicCompNum[compNum]++;
-        }
-      }
-      else if (tab == 1) {
-        if (house.roomComps[currentRoom].advCompNum[compNum] < 99) {
-          house.roomComps[currentRoom].advCompNum[compNum]++;
-        }
-      }
-      else {
-      }
-    });
-  }
-
-  void _subtract(int compNum, int tab) {
-    setState(() {
-      if (tab == 0) {
-        if (house.roomComps[currentRoom].basicCompNum[compNum] > 0) {
-          house.roomComps[currentRoom].basicCompNum[compNum]--;
-        }
-      }
-      else if (tab == 1) {
-        if (house.roomComps[currentRoom].advCompNum[compNum] > 0) {
-          house.roomComps[currentRoom].advCompNum[compNum]--;
-        }
-      }
-      else {
-      }
-    });
-  }
-
-  //TODO - NEEDS TO BE FINISHED
+  //TODO
   void _select(String choice) {
-    if (choice == "Help") {
-      int i = 1;
+
+  }
+
+  Future<void> _addAdvComp() async {
+
+    List<String> advCompsAdd = await Navigator.pushNamed(context, AddCompState.routeName, arguments: {'roomName' : roomName}) as List<String>;
+
+    for (int i = 0; i < advCompsAdd.length; i++) {
+      Comps comp = new Comps(house: houseName, room: roomName, comp: advCompsAdd[i], isBasic: 0);
+      await dbWorld.insertComp(comp);
+    }
+    setState(() {});
+  }
+
+
+  Future<void> _add(Comps comp) async {
+    if (comp.count < 100) {
+      comp.count = comp.count + 1;
+      await dbWorld.updateComps(comp);
+      setState(() {});
     }
   }
 
-  void _addComp() {
-    Navigator.pushNamed(context, NewCompState.routeName);
+  Future<void> _subtract(Comps comp) async {
+    if (comp.count > 0) {
+      comp.count = comp.count - 1;
+      await dbWorld.updateComps(comp);
+      setState(() {});
+    }
   }
 
-/*
-  void _descriptionChanged(String descript, int index) {
-    house.roomComps[currentRoom].advCompDescript.remove(index);
-    house.roomComps[currentRoom].advCompDescript.insert(index, descript);
+  Future<void> _updateText(Comps comp, String desc) async {
+    comp.desc = desc;
+    await dbWorld.updateComps(comp);
+    setState(() {});
+  }
 
-  }*/
+  //Basic component build, located in tab 1
+  Widget basicCompWidget() {
+    return FutureBuilder(
+      future: dbWorld.retrieveBasicComps(roomName),
+      builder: (BuildContext context, AsyncSnapshot<List<Comps>> snapshot) {
+        if (snapshot.hasData) {
+          return ListView.builder(
+              itemCount: snapshot.data?.length,
+              itemBuilder: (context, position) {
+                return Container(
+                    child: Row(
+                      children: <Widget>[
+                        Stack(
+                            children: <Widget>[
+                              Container(
+                                alignment: Alignment.centerLeft,
+                                height: 25,
+                                margin: const EdgeInsets.fromLTRB(4, 1, 0, 1),
+                                child: Text(snapshot.data![position].comp,
+                                  //textAlign: TextAlign.center,
+                                  style: TextStyle(fontSize: 21),
+                                  textAlign: TextAlign.left,
+                                ),
+                              ),
+                            ]),
+                        const Spacer(),
+                        Container(
+                            width: 30,
+                            alignment: Alignment.centerRight,
+                            child: TextButton(
+                              child: Text('+',
+                                style: TextStyle(color: Colors.white),),
+                              style: TextButton.styleFrom(
+                                  minimumSize: Size(30, 20),
+                                  backgroundColor: Colors.blueGrey),
+                              onPressed: () => {_add(snapshot.data![position])},
+                            )
+                        ),
+                        Container(
+                          width: 39,
+                          margin: const EdgeInsets.fromLTRB(1, 0, 1, 0),
+                          child: Text(snapshot.data![position].count.toString(),
+                            style: TextStyle(fontSize: 22),
+                            textAlign: TextAlign.left,
+                          ),
+                        ),
+                        Container(
+                            width: 30,
+                            margin: const EdgeInsets.fromLTRB(0, 0, 5, 0),
+                            alignment: Alignment.centerRight,
+                            child: TextButton(
+                              child: Text('-',
+                                style: TextStyle(color: Colors.white),),
+                              style: TextButton.styleFrom(
+                                  minimumSize: Size(30, 20),
+                                  backgroundColor: Colors.blueGrey),
+                              onPressed: () => {_subtract(snapshot.data![position])},
+                            )
+                        )
+                      ],
+                    )
+                );
+              }
+          );
+        } else {
+          return Center(child: CircularProgressIndicator());
+        }
+      }
+      );
+    }//
+  //Advanced component build, located in tab 2
+  Widget advCompWidget() {
+    return FutureBuilder(
+        future: dbWorld.retrieveAdvComps(roomName),
+        builder: (BuildContext context, AsyncSnapshot<List<Comps>> snapshot) {
+          if (snapshot.hasData) {
+            return ListView.builder(
+                itemCount: snapshot.data?.length,
+                itemBuilder: (context, position) {
+                  return Container(
+                      child: Row(
+                        children: <Widget>[
+                          Stack(
+                              children: <Widget>[
+                                Container(
+                                  alignment: Alignment.centerLeft,
+                                  height: 25,
+                                  margin: const EdgeInsets.fromLTRB(4, 1, 0, 1),
+                                  child: Text(snapshot.data![position].comp,
+                                    //textAlign: TextAlign.center,
+                                    style: TextStyle(fontSize: 21),
+                                    textAlign: TextAlign.left,
+                                  ),
+                                ),
+                                Container(
+                                width: 150,
+                                height: 25,
+                                margin: const EdgeInsets.fromLTRB(15, 29, 0, 1),
+                                child: TextFormField(
+                                    initialValue: snapshot.data![position].desc,
+                                    onChanged: (text) {
+                                      _updateText(snapshot.data![position], '$text');
+                                    },
+                                    onFieldSubmitted: (text) {
 
+                                    },
+                                    keyboardType: TextInputType.text,
+                                    decoration: InputDecoration(
+                                      hintText: "Description",
+                                    )
+                                ),
+                              ),
+                              ]),
+                          const Spacer(),
+                          Container(
+                              width: 30,
+                              alignment: Alignment.centerRight,
+                              child: TextButton(
+                                child: Text('+',
+                                  style: TextStyle(color: Colors.white),),
+                                style: TextButton.styleFrom(
+                                    minimumSize: Size(30, 20),
+                                    backgroundColor: Colors.blueGrey),
+                                onPressed: () => {_add(snapshot.data![position])},
+                              )
+                          ),
+                          Container(
+                            width: 39,
+                            margin: const EdgeInsets.fromLTRB(1, 0, 1, 0),
+                            child: Text(snapshot.data![position].count.toString(),
+                              style: TextStyle(fontSize: 22),
+                              textAlign: TextAlign.left,
+                            ),
+                          ),
+                          Container(
+                              width: 30,
+                              margin: const EdgeInsets.fromLTRB(0, 0, 5, 0),
+                              alignment: Alignment.centerRight,
+                              child: TextButton(
+                                child: Text('-',
+                                  style: TextStyle(color: Colors.white),),
+                                style: TextButton.styleFrom(
+                                    minimumSize: Size(30, 20),
+                                    backgroundColor: Colors.blueGrey),
+                                onPressed: () => {_subtract(snapshot.data![position])},
+                              )
+                          )
+                        ],
+                      )
+                  );
+                }
+            );
+          } else {
+            return Center(child: CircularProgressIndicator());
+          }
+        }
+    );
+  }
   @override
   Widget build(BuildContext context) {
+    final arguments = ModalRoute
+        .of(context)!
+        .settings
+        .arguments as Map;
+    roomName = arguments['roomName'];
+
     return DefaultTabController(
         initialIndex: 0,
-        length: 3,
+        length: 2,
         child: Scaffold(
           appBar: AppBar(
-              title: Text('${house.roomNames[currentRoom]}'),
+              title: Text(roomName),
               bottom: TabBar(
                   controller: _tabController,
                   tabs: <Widget>[
@@ -102,17 +257,14 @@ class _RoomSelected extends State<RoomSelectedState> with TickerProviderStateMix
                     Tab(
                         text: 'Advanced'
                     ),
-                    Tab(
-                        text: 'Adv Text'
-                    )
                   ]
               ),
-              actions: <Widget> [
+              actions: <Widget>[
                 IconButton(
-                  icon: Icon( Icons.add,
+                  icon: Icon(Icons.add,
                       color: Colors.white
                   ),
-                  onPressed: _addComp,
+                  onPressed: _addAdvComp,
                 ),
                 PopupMenuButton<String>(
                   onSelected: _select,
@@ -124,7 +276,7 @@ class _RoomSelected extends State<RoomSelectedState> with TickerProviderStateMix
                       'Settings',
                       'About'
                     }.map((String choice) {
-                      return PopupMenuItem<String> (
+                      return PopupMenuItem<String>(
                         value: choice,
                         child: Text(choice),
                       );
@@ -137,173 +289,14 @@ class _RoomSelected extends State<RoomSelectedState> with TickerProviderStateMix
               controller: _tabController,
               children: <Widget>[
                 //Basic components in room tab
-                Center(
-                  child: ListView.separated (
-                    separatorBuilder: (context, index) => Divider(
-                      color: Colors.black,
-                    ),
-                    itemCount: house.roomComps[currentRoom].basicCompNames.length,
-                    itemBuilder: (BuildContext context, int index) {
-                      return Container (
-                          child: Row (
-                            children: <Widget>[
-                              Container(
-                                margin: const EdgeInsets.fromLTRB(5, 0, 0, 0),
-                                child: Text('${house.roomComps[currentRoom].basicCompNames[index]}',
-                                  //textAlign: TextAlign.center,
-                                  style: TextStyle(fontSize: 22),
-                                  textAlign: TextAlign.left,
-                                ),
-                              ),
-                              const Spacer(),
-                              Container(
-                                  width: 30,
-                                  alignment: Alignment.centerRight,
-                                  child: TextButton (
-                                    child: Text('+',
-                                      style: TextStyle(color: Colors.white),),
-                                    style:TextButton.styleFrom(
-                                        minimumSize: Size(30, 20),
-                                        backgroundColor: Colors.blueGrey),
-                                    onPressed: () => {_add(index, 0)},
-                                  )
-                              ),
-                              Container(
-                                width: 39,
-                                margin: const EdgeInsets.fromLTRB(1, 0, 1, 0),
-                                child: Text('  ${ house.roomComps[currentRoom].basicCompNum[index]}',
-                                  style: TextStyle(fontSize: 22),
-                                  textAlign: TextAlign.left,
-                                ),
-                              ),
-                              Container(
-                                  width: 30,
-                                  margin: const EdgeInsets.fromLTRB(0, 0, 5, 0),
-                                  alignment: Alignment.centerRight,
-                                  child: TextButton (
-                                    child: Text('-',
-                                      style: TextStyle(color: Colors.white),),
-                                    style:TextButton.styleFrom(
-                                        minimumSize: Size(30, 20),
-                                        backgroundColor: Colors.blueGrey),
-                                    onPressed: () => {_subtract(index, 0)},
-                                  )
-                              )
-                            ],
-                          )
-                      );
-                    },
-                  ),
+                Expanded(
+                  flex: 1,
+                  child: SafeArea(child: basicCompWidget()),
                 ),
-                //Advanced components in room tab
-                Center(
-                    child: ListView.separated (
-                        separatorBuilder: (context, index) => Divider(
-                          color: Colors.black,
-                        ),
-                        itemCount: house.roomComps[currentRoom].advCompNames.length,
-                        itemBuilder: (BuildContext context, int index) {
-                          return Container (
-                              child: Row (
-                                children: <Widget>[
-                                  Stack(
-                                      children: <Widget>[
-                                        Container(
-                                          alignment: Alignment.centerLeft,
-                                          height: 25,
-                                          margin: const EdgeInsets.fromLTRB(4, 1, 0, 1),
-                                          child: Text('${house.roomComps[currentRoom].advCompNames[index]}',
-                                            //textAlign: TextAlign.center,
-                                            style: TextStyle(fontSize: 21),
-                                            textAlign: TextAlign.left,
-                                          ),
-                                        ),
-                                        Container(
-                                          width: 150,
-                                          height: 25,
-                                          margin: const EdgeInsets.fromLTRB(15, 29, 0, 1),
-                                          child: TextFormField(
-                                            initialValue: house.roomComps[currentRoom].advCompDescript[index],
-                                            onChanged: (text) {
-                                              //house.roomComps[currentRoom].advCompDescript.remove(index);
-                                              house.roomComps[currentRoom].advCompDescript[index] = '$text';
-                                            },
-                                            //textAlign: TextAlign.center,
-                                            //style: TextStyle(fontSize: 22),
-                                            //textAlign: TextAlign.left,
-                                              keyboardType: TextInputType.text,
-                                              decoration: InputDecoration(
-                                                hintText: "Description",
-                                                //labelText: "Description", //house.roomComps[currentRoom].advCompDescript[index],
-                                              )
-                                          ),
-                                        ),
-                                      ]),
-                                  const Spacer(),
-                                  Container(
-                                      width: 30,
-                                      alignment: Alignment.centerRight,
-                                      child: TextButton (
-                                        child: Text('+',
-                                          style: TextStyle(color: Colors.white),),
-                                        style:TextButton.styleFrom(
-                                            minimumSize: Size(30, 20),
-                                            backgroundColor: Colors.blueGrey),
-                                        onPressed: () => {_add(index, 1)},
-                                      )
-                                  ),
-                                  Container(
-                                    width: 39,
-                                    margin: const EdgeInsets.fromLTRB(1, 0, 1, 0),
-                                    child: Text('  ${ house.roomComps[currentRoom].advCompNum[index]}',
-                                      style: TextStyle(fontSize: 22),
-                                      textAlign: TextAlign.left,
-                                    ),
-                                  ),
-                                  Container(
-                                      width: 30,
-                                      margin: const EdgeInsets.fromLTRB(0, 0, 5, 0),
-                                      alignment: Alignment.centerRight,
-                                      child: TextButton (
-                                        child: Text('-',
-                                          style: TextStyle(color: Colors.white),),
-                                        style:TextButton.styleFrom(
-                                            minimumSize: Size(30, 20),
-                                            backgroundColor: Colors.blueGrey),
-                                        onPressed: () => {_subtract(index, 1)},
-                                      )
-                                  )
-                                ],
-                              )
-                          );
-                        }
-                    )
+                Expanded(
+                  flex: 1,
+                  child: SafeArea(child: advCompWidget()),
                 ),
-                //Adv Text components in room tab
-                Center(
-                    child: ListView.separated (
-                        separatorBuilder: (context, index) => Divider(
-                          color: Colors.black,
-                        ),
-                        itemCount: house.roomComps[currentRoom].advText.length,
-                        itemBuilder: (BuildContext context, int index) {
-                          return Container (
-                              child: Row (
-                                  children: <Widget>[
-                                    Container(
-                                      margin: const EdgeInsets.fromLTRB(5, 0, 0, 0),
-                                      child: Text('${house.roomComps[currentRoom].advText[index]}',
-                                        //textAlign: TextAlign.center,
-                                        style: TextStyle(fontSize: 22),
-                                        textAlign: TextAlign.left,
-                                      ),
-                                    )
-                                  ]
-                              )
-                          );
-                        }
-                    )
-                )
               ]
           ),
         )

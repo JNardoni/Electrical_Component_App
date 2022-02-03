@@ -1,181 +1,357 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+import 'package:flutter/widgets.dart';
+import 'package:path/path.dart' as Path;
+import 'package:sqflite/sqflite.dart';
 
 import 'globals.dart' as globals;
 
-part 'addComponent.dart';
-part 'addRoom.dart';
-part 'houseList.dart';
+part 'structHouse.dart';
+part 'structComp.dart';
+//part 'structRoom.dart';
+part 'structGlobals.dart';
+
+part 'databaseHouses.dart';
+//part 'databaseComps.dart';
+//part 'databaseRooms.dart';
+//part 'databaseGlobals.dart';
+
+part 'roomList.dart';
 part 'componentList.dart';
 
-part 'structComp.dart';
-part 'structHouse.dart';
-part 'structRoom.dart';
-part 'roomList.dart';
+part 'addComponent.dart';
+part 'addRoom.dart';
 
 
-const int MAX_HOUSES = 50;
+String houseName = ""; //TODO pass it along instead of global
+//String roomName = "";
+late DatabaseHouses dbWorld;
 
-//int state = 0;
-int currentRoom = 0;
-int currentHouse = -1;
-
-//Rooms house = new Rooms();
-
-HouseStruct houseList = new HouseStruct();
-//Rooms house;
-
-
-//String addedRoom = "";
 
 void main() {
-  runApp(MyApp());
+  runApp(RoomsHomePage());
 }
 
-class MyApp extends StatelessWidget {
-
-  // This widget is the root of your application.
+class RoomsHomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    var routes= <String, WidgetBuilder>{
-      RoomSelectedState.routeName: (BuildContext context) => new RoomSelectedState(title: "Comps"),
+
+    var routes = <String, WidgetBuilder>{
+      CompsListState.routeName: (BuildContext context) => new CompsListState(title: "CompsList"),
       AddElementState.routeName: (BuildContext context) => new AddElementState(title: "Elements"),
-      NewCompState.routeName: (BuildContext context) => new NewCompState(title: "NewComp"),
-  //    SelectHouseState.routeName: (BuildContext context) => new SelectHouseState(title: "SelHouse"),
-      SelectRoomState.routeName: (BuildContext context) => new SelectRoomState(title: "SelectRoom"),
+      AddCompState.routeName: (BuildContext context) => new AddCompState(title: "AddComp"),
+      //SelectHouseState.routeName: (BuildContext context) => new SelectHouseState(title: "SelHouse"),
+      RoomsListState.routeName: (BuildContext context) => new RoomsListState(title: "RoomsList"),
     };
+
     return MaterialApp(
-      title: 'Electrical Mapping',
+      title: 'Electrical Component Mapping',
       theme: ThemeData(
-        primarySwatch: Colors.blue,
+        primarySwatch: Colors.blueGrey,
       ),
-      home: MyHomePage(title: 'Electrical Mapping Home Page'),
+      home: MainApp(title: 'Electrical Mapping'),
       routes: routes,
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  MyHomePage({Key? key, required this.title}) : super(key: key);
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
-
+class MainApp extends StatefulWidget {
+  MainApp({Key? key, this.title}) : super(key: key);
+  final String? title;
 
   @override
-  _MyHomePageState createState() => _MyHomePageState();
+  _MainAppState createState() => _MainAppState();
 }
 
-//Home page - shows the list of rooms
-class _MyHomePageState extends State<MyHomePage> {
+class _MainAppState extends State<MainApp> {
+  final nameController = TextEditingController();
+  late Houses _house;
+/*  final ColorScheme colorScheme = Theme.of(context).colorScheme;
+  final Color oddItemColor = colorScheme.primary.withOpacity(0.05);
+  final Color evenItemColor = colorScheme.primary.withOpacity(0.15);*/
 
-  TextEditingController _houseNameController = TextEditingController();
 
   @override
   void initState() {
-    if(currentHouse == -1) { //Current house being -1 means it was never set, and the app never used
-      _houseNameDialog(context);
-    }
     super.initState();
+    dbWorld = DatabaseHouses();
+    dbWorld.initWorldDB().whenComplete(() async {
+      setState(() {});
+
+      buildGlobals();      
+    });
   }
 
-  void _selectHouse(int index) {
-    currentHouse = index;
-    Navigator.pushNamed(context, SelectRoomState.routeName);
-  }
+  //Build globals will only be fully run once, when the user is first opening up the app. It builds a list of global advanced comps,
+  //which will be used to populate the later arrays
+  //TODO - Store it in an "is opened" key, can technically be called more times if the user deletes all info. Combine key with tutorial
+  Future<void> buildGlobals() async {
+    var clist = await dbWorld.retrieveGlobals();
 
-  void _newHouse() {
-    if (houseList.houseName.length >= MAX_HOUSES) {
-      //TODO Add toast warning
+    if (clist.isEmpty) {
+        for (int i = 0; i < globals.advComps.length; i++) {
+          Globals globalsC = new Globals(name: globals.advComps[i]);
+          await dbWorld.insertGlobals(globalsC);
+        }
+        _houseNameDialog(context);
     }
+  }
+
+  //Checks to see if a name will be valid to be added to a house
+  //This name will be used in the tablenames for both rooms and components, meaning it must be valid for SQL
+  //Must start with a letter, allows no special symbols (Spaces are ok, turned into underscores
+  bool checkValidNames(String name, BuildContext context) {
+
+    if (name.length == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('House must have a name')));
+      return false;
+    }
+    else if (name.length > 40) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('House name is too long')));
+      return false;
+    }
+
+    //name = name.replaceAll(' ', '_');
+
+    if (!RegExp(r"^[a-zA-Z0-9_ ]+$").hasMatch(name)) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Houses may only contain letters, numbers, spaces, and underscores')));
+      return false;
+    }
+  /*  else if (!RegExp(r"^[a-zA-Z]+$").hasMatch('${name[0]}')) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Houses must start with a letter')));
+      return false;
+    }*/
+    return true;
+  }
+
+
+  Future<bool> addOrEditHouse(BuildContext context) async {
+    String name = nameController.text;
+
+    //name = name.replaceAll(' ', '_');
+
+    //Check to make sure the house name doesnt already exist
+    var currentHouses =  await dbWorld.retrieveHouses();
+
+    for (int i = 0; i < currentHouses.length; i++) {
+        if (currentHouses[i].house.compareTo(name) ==0) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('A house with this name already exists')));
+          return false;
+        }
+    }
+    Navigator.of(context).pop();
+
+    Houses house = new Houses(house: name);
+    await addHouse(house);
+
+    nameController.clear();
+    setState(() {});
+
+    return true;
+  }
+
+  //Calls databaseHelper query to insert the to be added house
+  Future<int> addHouse(Houses house) async {
+    return await dbWorld.insertHouse(house);
+  }
+
+  //UNUSED
+  //Calls an update to the house
+  Future<int> updateHouse(Houses house) async {
+    return await dbWorld.updateHouse(house);
+  }
+
+  //When the button to add a house is pushed, it goes here
+  //Callse the alert dialog to give the user a chance to enter a new house name
+  void _newHouse() {
     _houseNameDialog(context);
   }
 
-  //TODO menu stuff
-  void _select(String choice) {
-    if (choice == "Help") {
-      int i = 1;
-    }
-    if (choice == "Settings") {
+  //When A house is selected, it goes here
+  //Calls the new activity, which is the list of rooms located inside that house
+  void _selectHouse(Houses house) {
+    _house = house;
+    houseName = _house.house;
 
-    }
+    Navigator.pushNamed(context, RoomsListState.routeName);
   }
 
   //If there is no most recent house, an alert menu will appear, welcoming the user to the app and getting the name for a first household
   //This menu is also called when a user attempts to add a new house to the list of houses
   //Takes nothing, is inescapable
   //When the name of the house is entered, it adds the house to the house list
-  //TODO: scrub house name
   Future _houseNameDialog(BuildContext context) async {
     await Future.delayed(Duration(seconds: 0));
     showDialog(
-      barrierDismissible: false,
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(   //---Alert dialog pops up----
-          title: new Text(    //Top of alert: text
-              "Welcome!\nFirst, enter the name for the household"),
-          content: TextField( //Gets the name of the house by setting it to a input controller
-            controller: _houseNameController,
-            decoration: InputDecoration(hintText: "House name"),
-          ),
-          actions: <Widget>[
-            new FlatButton( //Button to confirm when it is entered
-              child: new Text("Cancel"),
-              onPressed: () {
-                _houseNameController.text = "";
-                Navigator.of(context).pop();
-              }
+        barrierDismissible: false,
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog( //---Alert dialog pops up----
+            title: new Text( //Top of alert: text
+                "Welcome!\nFirst, enter the name for the household"),
+            content: TextField( //Gets the name of the house by setting it to a input controller
+              controller: nameController,
+              decoration: InputDecoration(hintText: "House name"),
             ),
-            new FlatButton( //Button to confirm when it is entered
-              child: new Text("OK"),
-              onPressed: () {
-                if (_houseNameController.text.length == 0) {
-                }
-                else {
-                  setState(() {
-                    currentHouse = houseList.numHouses;
-                    houseList.addHouse(_houseNameController.text);
-                    _houseNameController.text = "";
-                  //  house = houseList.houses[currentHouse];
-                  });
-                  Navigator.of(context).pop();
-                }
-              },
-            ),
-          ],
-        );
+            actions: <Widget>[
+              // ignore: deprecated_member_use
+              new FlatButton( //Button to confirm when it is entered
+                  child: new Text("Cancel"),
+                  onPressed: () {
+                    nameController.text = "";
+                    Navigator.of(context).pop();
+                  }
+              ),
+              new FlatButton( //Button to confirm when it is entered
+                child: new Text("OK"),
+                onPressed: () {
+                  if (checkValidNames(nameController.text, context)) {
+                    addOrEditHouse(context);
+                  }
+                },
+              ),
+            ],
+          );
+        });
+  }
+
+
+  Widget houseWidget() {
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+    final Color oddItemColor = colorScheme.primary.withOpacity(0.05);
+    final Color evenItemColor = colorScheme.primary.withOpacity(0.15);
+    return FutureBuilder(
+      future: dbWorld.retrieveHouses(),
+      builder: (BuildContext context, AsyncSnapshot<List<Houses>> snapshot) {
+        if (snapshot.hasData) {
+          return ListView.builder(
+              itemCount: snapshot.data?.length,
+              itemBuilder: (context, position) {
+                return Dismissible (
+                    direction: DismissDirection.endToStart,
+                    background: Container(
+                      color: Colors.red,
+                      alignment: Alignment.centerRight,
+                      padding: EdgeInsets.symmetric(horizontal: 10.0),
+                      child: Icon(Icons.delete_forever),
+                    ),
+                    key: UniqueKey(),
+                      //TODO drop tables does seem to be working
+                    onDismissed: (DismissDirection direction) async {
+                      houseName = snapshot.data![position].house;
+
+                      await dbWorld.deleteHouse(snapshot.data![position].house);
+                      setState(() {});
+
+                      await dbWorld.deleteComps_House(snapshot.data![position].house);
+
+                    },
+                    confirmDismiss: (DismissDirection direction) async {
+                      return await showDialog(
+                        context: context,
+                        builder: (BuildContext context) {
+                     return AlertDialog(
+                            title: const Text("Delete Confirmation"),
+                            content: Text('Are you sure you want to delete ${snapshot.data![position].house} ?'),
+                            actions: <Widget>[
+                              FlatButton(
+                                  onPressed: () =>
+                                      Navigator.of(context).pop(true),
+                                  child: const Text("Delete")
+                              ),
+                              FlatButton(
+                                onPressed: () =>
+                                    Navigator.of(context).pop(false),
+                                child: const Text("Cancel"),
+                              ),
+                            ],
+                          );
+                        },
+                      );
+                    },
+                    child: ListTile(
+                        key: Key('$position'),
+                        onTap:  () => _selectHouse(snapshot.data![position]),
+                        tileColor: position % 2 == 0 ? evenItemColor : oddItemColor,
+                        title: Text('${snapshot.data![position].house}')
+                    )
+
+
+             /*       child: new GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => _selectHouse(snapshot.data![position]),
+                      child: Column(
+                        children: <Widget>[
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: <Widget>[
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: <Widget>[
+                                  Padding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                        12.0, 12.0, 12.0, 6.0),
+                                    child: Text(
+                                      snapshot.data![position].house,
+                                      style: TextStyle(
+                                          fontSize: 22.0,
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                              Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Column(
+                                  mainAxisAlignment:
+                                  MainAxisAlignment.spaceEvenly,
+                                  children: <Widget>[
+                                    Container(
+                                      decoration: BoxDecoration(
+                                          color: Colors.black26,
+                                          borderRadius:
+                                          BorderRadius.circular(100)),
+                                      )
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          Divider(
+                            height: 2.0,
+                            color: Colors.grey,
+                          )
+                        ],
+                      ),]
+                    ))*/
+                );
+              });
+        } else {
+          return Center(child: CircularProgressIndicator());
+        }
       },
     );
   }
 
+
   @override
   Widget build(BuildContext context) {
-    final ColorScheme colorScheme = Theme.of(context).colorScheme;
-    final Color oddItemColor = colorScheme.primary.withOpacity(0.05);
-    final Color evenItemColor = colorScheme.primary.withOpacity(0.15);
+   // final ColorScheme colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
         // Here we take the value from the MyHomePage object that was created by
         // the App.build method, and use it to set our appbar title.
         title: Text('Saved Houses'),
-        actions: <Widget> [
-    /*      IconButton(
+        actions: <Widget>[
+          /*      IconButton(
             icon: Icon( Icons.add,
                 color: Colors.white
             ),
             onPressed: _newHouse,
           ),*/
           PopupMenuButton<String>(
-            onSelected: _select,
+            //   onSelected: _select, TODO add menus
             //     icon: Icon(Icons.settings,
             //     color: Colors.white),
             itemBuilder: (BuildContext context) {
@@ -185,7 +361,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 'Settings',
                 'About'
               }.map((String choice) {
-                return PopupMenuItem<String> (
+                return PopupMenuItem<String>(
                   value: choice,
                   child: Text(choice),
                 );
@@ -194,72 +370,25 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         ],
       ),
-
-        body: ListView (/* ReorderableListView(
-          onReorder: (int oldIndex, int newIndex) {
-            setState(() {
-              String strStore = houseList.houseName[oldIndex];
-              Comps strComp = house.roomComps[oldIndex];
-
-              if (newIndex > oldIndex) {
-                newIndex -=1;
-              }
-              house.roomComps.removeAt(oldIndex);
-              house.roomNames.removeAt(oldIndex);
-              house.roomComps.insert(newIndex, strComp);
-              house.roomNames.insert(newIndex, strStore);
-
-            });
-          },*/
-          children: <Widget> [
-            for (int index = 0; index < houseList.houseName.length; index++)
-              Dismissible(
-                  key: UniqueKey(),
-                  onDismissed: (direction) {
-                    setState(() {
-                      //house.roomNames.removeAt(index);
-                      houseList.houseName.removeAt(index);
-                      houseList.houses.removeAt(index);
-                      //house.roomComps.removeAt(index);
-                    });
-                  },
-                  background: Container(color: Colors.red),
-                  confirmDismiss: (DismissDirection direction) async {
-                    return await showDialog(
-                      context: context,
-                      builder: (BuildContext context) {
-                        return AlertDialog(
-                          title: const Text("Delete Confirmation"),
-                          content: const Text("Are you sure you want to delete this house?"),
-                          actions: <Widget>[
-                            FlatButton(
-                                onPressed: () => Navigator.of(context).pop(true),
-                                child: const Text("Delete")
-                            ),
-                            FlatButton(
-                              onPressed: () => Navigator.of(context).pop(false),
-                              child: const Text("Cancel"),
-                            ),
-                          ],
-                        );
-                      },
-                    );
-                  },
-                  child: ListTile(
-                      key: Key('$index'),
-                      onTap:  () => _selectHouse(index),
-                      tileColor: index % 2 == 0 ? evenItemColor : oddItemColor,
-                      title: Text('${houseList.houseName[index]}')
+      body: Column(
+        children: <Widget>[
+          Expanded(
+              child: new Column(
+                children: [
+                  Expanded(
+                    flex: 1,
+                    child: SafeArea(child: houseWidget()),
                   )
-              )
-          ],
-        ),//;//);
-
-        floatingActionButton: FloatingActionButton(
-          onPressed: _newHouse,
-          tooltip: 'Add Room',
-          child: Icon(Icons.add),
+                ],
+              )),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _newHouse,
+        tooltip: 'Add house',
+        child: Icon(Icons.add),
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
+
 }

@@ -2,39 +2,45 @@ part of 'main.dart';
 
 //:::::::::::::::::::::FOR ADDING NEW COMPONENTS::::::::::::::::::::
 
-class NewCompState extends StatefulWidget {
-  NewCompState({Key? key, required this.title}) : super(key: key);
+class AddCompState extends StatefulWidget {
+  AddCompState({Key? key, required this.title}) : super(key: key);
 
-  static const String routeName = "/NewComp";
+  static const String routeName = "/AddComp";
 
   final String title;
 
   @override
-  _NewComp createState() => _NewComp();
+  _AddComp createState() => _AddComp();
 }
 
 
 //New component page. Opened when the '+' button is pressed in the component page
 //Allows user to select multiple components, and add them to the main page
-class _NewComp extends State<NewCompState> {
+class _AddComp extends State<AddCompState> {
 
-  Rooms house = houseList.houses[currentHouse];
+  //Rooms house = houseList.houses[currentHouse];
 
-  List<String> advCompsAdd = [];
-  List<String> changes = [];
+  List<String> advCompsAdd = []; //List of global adv comps which arent in the room
+  List<String> changes = [];  //list of changes which have been selected to be added to the room
+
+ // late DatabaseComps dbComps;
+ // late DatabaseGlobals dbGlobals;
 
   TextEditingController _backArrowController = TextEditingController();
   TextEditingController _userAddCompController = TextEditingController();
   bool lock = false; //On setup, ensures that the _adv comps is called once and only once
 
   String errorText = "";
+  String roomName = "";
 
-  void _advComps() {
-    for (int i = 0; i < globals.advComps.length; i++) {
-      if (!house.roomComps[currentRoom].advCompNames.contains(globals.advComps[i])) {
-        advCompsAdd.add(globals.advComps[i]);
-      }
-    }
+
+  @override
+  void initState() {
+    super.initState();
+
+    setState(() {});
+
+    fetchUnusedComps();
   }
 
   bool _isSelected(String str) {
@@ -53,21 +59,41 @@ class _NewComp extends State<NewCompState> {
   }
 
   void _confirmComps() {
-
     for(int i = 0; i < changes.length; i++) {
-      house.roomComps[currentRoom].advCompNames.add(changes[i]);
-      house.roomComps[currentRoom].advCompNum.add(0);
-      house.roomComps[currentRoom].advCompDescript.add("");
     }
 
-    Navigator.of(context).pop();
+    //Navigator.of(context).pop();
+    Navigator.pop(context, changes);
   }
 
-  void _checkBack() {
+  //Fetches the list of unused adv comps from the global table in order to populate this list
+  //First gets a list of all globals that have been added to the permamnt list
+  //Next, gets the list of comps added to this room, and removes them from the globals list
+  Future<void> fetchUnusedComps() async {
+
+    if (lock) return;
+    lock = true;
+
+    var list = await dbWorld.retrieveGlobals();
+    if (list.isNotEmpty) {
+      for (int i = 0; i < list.length; i++) {
+        advCompsAdd.add(list[i].name);
+      }
+    }
+
+    var clist = await dbWorld.retrieveAdvComps(roomName);
+    if (clist.isNotEmpty) {
+      for (int i = 0; i < clist.length; i++) {
+        advCompsAdd.remove(clist[i].comp);
+      }
+    }
+    setState(() {});
 
   }
 
-  //i - 0 if adding to room only, 1 to all list
+  //Adds a new component to this component list
+  //If a 0, adds to THIS ROOM ONLY
+  //If a 1, adds the THE GLOBAL LIST
   bool _userCompAdd(int i) {
 
     if (_userAddCompController.text == "") {
@@ -78,25 +104,33 @@ class _NewComp extends State<NewCompState> {
     _setSelected(_userAddCompController.text);
 
     if (i == 1) {
-      globals.advComps.add(_userAddCompController.text);
-      //globals.advCompsText.add("");
+      //globals.advComps.add(_userAddCompController.text);
+
+      addGlobalToTable(_userAddCompController.text);
     }
 
     _userAddCompController.text = "";
     return true;
   }
 
+  Future<void> addGlobalToTable(String name) async {
+    Globals globalsC = new Globals(name: name);
+    await dbWorld.insertGlobals(globalsC);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final arguments = ModalRoute
+        .of(context)!
+        .settings
+        .arguments as Map;
+    roomName = arguments['roomName'];
 
-    if (!lock) {
-      _advComps();
-      lock = true;
-    }
+    fetchUnusedComps();
 
     return Scaffold(
       appBar: AppBar(
-          title: Text('${globals.titleNewCom} ${house.roomComps[currentRoom].roomName}'),
+          title: Text("Adding to " + roomName),
           leading:
           IconButton(
             icon: Icon(Icons.arrow_back),
@@ -113,6 +147,7 @@ class _NewComp extends State<NewCompState> {
                         title: new Text(
                             "Are you sure you want to go back to the room page? Additions will not be saved"),
                         actions: <Widget>[
+                          // ignore: deprecated_member_use
                           new FlatButton(
                             child: new Text("Go back"),
                             onPressed: () {
@@ -120,6 +155,7 @@ class _NewComp extends State<NewCompState> {
                               Navigator.of(context).pop();
                             },
                           ),
+                          // ignore: deprecated_member_use
                           new FlatButton(
                             child: new Text("Stay"),
                             onPressed: () {
@@ -151,6 +187,7 @@ class _NewComp extends State<NewCompState> {
                               errorText: errorText == "" ? null : errorText,)
                         ),
                         actions: <Widget>[
+                          // ignore: deprecated_member_use
                           new FlatButton(
                               child: new Text("Cancel"),
                               onPressed: () {
@@ -158,6 +195,7 @@ class _NewComp extends State<NewCompState> {
                                 _userAddCompController.text = "";},
                                 );}
                           ),
+                          // ignore: deprecated_member_use
                           new FlatButton(
                             child: new Text("Add to the component list for future use"),
                             onPressed: () {
@@ -166,6 +204,7 @@ class _NewComp extends State<NewCompState> {
                               });
                             },
                           ),
+                          // ignore: deprecated_member_use
                           new FlatButton(
                             child: new Text("Add to this room"),
                             onPressed: () {
@@ -182,38 +221,26 @@ class _NewComp extends State<NewCompState> {
             ),
           ]
       ),
-      body: ListView (/* ReorderableListView(
-          onReorder: (int oldIndex, int newIndex) {
-            setState(() {
-              String strStore = houseList.houseName[oldIndex];
-              Comps strComp = house.roomComps[oldIndex];
+      body: ListView (
 
-              if (newIndex > oldIndex) {
-                newIndex -=1;
-              }
-              house.roomComps.removeAt(oldIndex);
-              house.roomNames.removeAt(oldIndex);
-              house.roomComps.insert(newIndex, strComp);
-              house.roomNames.insert(newIndex, strStore);
-
-            });
-          },*/
         children: <Widget> [
           for (int index = 0; index < advCompsAdd.length; index++)
             Dismissible(
                 key: UniqueKey(),
                 onDismissed: (direction) {
                   setState(() {
-                    //house.roomNames.removeAt(index);
-                    //houseList.houseName.removeAt(index);
-                    //houseList.houses.removeAt(index);
-                    //house.roomComps.removeAt(index);
-                    changes.remove(advCompsAdd[index]);
-                    advCompsAdd.remove(advCompsAdd[index]);
-                    globals.advComps.remove(advCompsAdd[index]);
+                  //TODO make comps deleteable
+                   // changes.remove(advCompsAdd[index]);
+                   // advCompsAdd.remove(advCompsAdd[index]);
+                  //  globals.advComps.remove(advCompsAdd[index]);
                   });
                 },
-                background: Container(color: Colors.red),
+                background: Container(
+                  color: Colors.red,
+                  alignment: Alignment.centerRight,
+                  padding: EdgeInsets.symmetric(horizontal: 10.0),
+                  child: Icon(Icons.delete_forever),
+                ),
                 confirmDismiss: (DismissDirection direction) async {
                   return await showDialog(
                     context: context,
@@ -222,10 +249,12 @@ class _NewComp extends State<NewCompState> {
                         title: const Text("Delete Confirmation"),
                         content: const Text("Are you sure you want to delete this component?"),
                         actions: <Widget>[
+                          // ignore: deprecated_member_use
                           FlatButton(
                               onPressed: () => Navigator.of(context).pop(true),
                               child: const Text("Delete")
                           ),
+                          // ignore: deprecated_member_use
                           FlatButton(
                             onPressed: () => Navigator.of(context).pop(false),
                             child: const Text("Cancel"),
@@ -255,7 +284,7 @@ class _NewComp extends State<NewCompState> {
             );
           }
       ),
-      */
+*/
       floatingActionButton: FloatingActionButton(
         onPressed: _confirmComps,
         tooltip: 'Confirm changes',
@@ -264,4 +293,3 @@ class _NewComp extends State<NewCompState> {
     );
   }
 }
-

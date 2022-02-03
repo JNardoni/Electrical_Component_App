@@ -1,39 +1,35 @@
 part of 'main.dart';
 
-//Holds the components in each room
-//List of components in the room
-//List of numbers of components
-class Comps extends _MyHomePageState {
-  String roomName = "";
+class Comps {
 
-  int numBasicComps = 1;
-  int numAdvComps = 1;
-  int numAdvText = 1;
+  String house = "";
+  String room = "";
+  String comp = "";
+  int count = 0;
+  int isBasic = 0;
+  String desc = "";
 
-  var basicCompNames = [];
-  var basicCompNum = [];
+  Comps({required this.house, required this.room, required this.comp, required this.isBasic});
 
-  var advCompNames = [];
-  var advCompDescript = [];
-  var advCompNum = [];
+  Comps.fromMap(Map<String, dynamic> res)
+      : house = res["house"],
+        room = res["room"],
+        comp = res["comp"],
+        count = res["count"],
+        isBasic = res["isBasic"],
+        desc = res["desc"];
 
-  var advTextNames = [];
-  var advText = [];
-
-  Comps(String room) {
-    this.roomName = room;
-
-    for (int i = 0; i < globals.basicComps.length; i++) {
-      this.basicCompNames.add(globals.basicComps[i]);
-      this.basicCompNum.add(0);
-    }/*
-    for (int i = 0; i < globals.advComps.length; i++) {
-      this.advCompNames.add(globals.advComps[i]);
-      this.advCompNum.add(0);
-    }*/
-    for (int i = 0; i < globals.advText.length; i++) {
-      this.advTextNames.add(globals.advText[i]);
-      //advText[i].add('0');
-    }
+  Map<String, Object?> toMap() {
+    return {'house' : house, 'room' : room, 'comp' : comp, 'count' : count, 'isBasic' : isBasic, 'desc' : desc};
   }
+
+
+  Comps.roomsfromMap(Map<String, dynamic> res)
+      : room = res["room"];
+
+  Map<String, Object?> roomstoMap() {
+    return {'room' : room};
+  }
+
+
 }

@@ -18,18 +18,19 @@ class DatabaseHouses {
     worlddb = await openDatabase(
       Path.join(path, 'component_mapping.db'),
       onCreate: (database, version) async {
-        //Create house list table
+        //~~~~~~~~~~~~~~~~Create house list table~~~~~~~~~~~~~
         await database.execute(
           """
             CREATE TABLE house_list (
-              house TEXT NOT NULL
+              house TEXT NOT NULL,
+              createdDate INTEGER NOT NULL
             )
           """,
         );
-        //Create components table
+        //~~~~~~~~~~~~~Create components table~~~~~~~~~~~~~~~~~
         await database.execute("CREATE TABLE comps_list (house TEXT NOT NULL, room TEXT NOT NULL, comp TEXT NOT NULL, count INTEGER NOT NULL, isBasic INTEGER NOT NULL, desc TEXT NOT NULL)",
         );
-        //Create a table with the list of global components
+        //~~~~~~~~~~~Create a table with the list of global components~~~~~~~~~~~~~~~~~~~~~
         await database.execute(
           """
             CREATE TABLE global_list (
@@ -59,8 +60,9 @@ class DatabaseHouses {
     return result;
   }
 
+
   Future<List<Houses>> retrieveHouses() async {
-    final List<Map<String, Object?>> queryResult = await worlddb.query('house_list');
+    final List<Map<String, Object?>> queryResult = await worlddb.query('house_list', orderBy: 'createdDate DESC');
     return queryResult.map((e) => Houses.fromMap(e)).toList();
   }
 

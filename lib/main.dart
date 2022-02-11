@@ -1,28 +1,38 @@
+import 'dart:typed_data';
+import 'dart:io';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'package:flutter/widgets.dart';
+import 'package:intl/intl.dart';  //Global settings
 import 'package:path/path.dart' as Path;
 import 'package:sqflite/sqflite.dart';
+
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+
+import 'package:path_provider/path_provider.dart';
+import 'package:open_file/open_file.dart' as OF;
+
+import 'package:permission_handler/permission_handler.dart';
 
 import 'globals.dart' as globals;
 
 part 'structHouse.dart';
 part 'structComp.dart';
-//part 'structRoom.dart';
 part 'structGlobals.dart';
 
 part 'databaseHouses.dart';
-//part 'databaseComps.dart';
-//part 'databaseRooms.dart';
-//part 'databaseGlobals.dart';
 
 part 'roomList.dart';
 part 'componentList.dart';
 
 part 'addComponent.dart';
 part 'addRoom.dart';
+
+part 'exportPDF.dart';
 
 
 String houseName = ""; //TODO pass it along instead of global
@@ -42,8 +52,10 @@ class RoomsHomePage extends StatelessWidget {
       CompsListState.routeName: (BuildContext context) => new CompsListState(title: "CompsList"),
       AddElementState.routeName: (BuildContext context) => new AddElementState(title: "Elements"),
       AddCompState.routeName: (BuildContext context) => new AddCompState(title: "AddComp"),
-      //SelectHouseState.routeName: (BuildContext context) => new SelectHouseState(title: "SelHouse"),
+
       RoomsListState.routeName: (BuildContext context) => new RoomsListState(title: "RoomsList"),
+
+   //   ExportPDFState.routeName: (BuildContext context) => new ExportPDFState(title: "ExportPDF"),
     };
 
     return MaterialApp(
@@ -68,10 +80,6 @@ class MainApp extends StatefulWidget {
 class _MainAppState extends State<MainApp> {
   final nameController = TextEditingController();
   late Houses _house;
-/*  final ColorScheme colorScheme = Theme.of(context).colorScheme;
-  final Color oddItemColor = colorScheme.primary.withOpacity(0.05);
-  final Color evenItemColor = colorScheme.primary.withOpacity(0.15);*/
-
 
   @override
   void initState() {
@@ -113,24 +121,16 @@ class _MainAppState extends State<MainApp> {
       return false;
     }
 
-    //name = name.replaceAll(' ', '_');
-
     if (!RegExp(r"^[a-zA-Z0-9_ ]+$").hasMatch(name)) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Houses may only contain letters, numbers, spaces, and underscores')));
       return false;
     }
-  /*  else if (!RegExp(r"^[a-zA-Z]+$").hasMatch('${name[0]}')) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Houses must start with a letter')));
-      return false;
-    }*/
     return true;
   }
 
 
   Future<bool> addOrEditHouse(BuildContext context) async {
     String name = nameController.text;
-
-    //name = name.replaceAll(' ', '_');
 
     //Check to make sure the house name doesnt already exist
     var currentHouses =  await dbWorld.retrieveHouses();
@@ -168,6 +168,28 @@ class _MainAppState extends State<MainApp> {
   void _newHouse() {
     _houseNameDialog(context);
   }
+
+  void _selectOption(String option) {
+
+    if (option == 'ExportPDF') {
+     // saveInStorage('testFile.pdf');
+
+      savePDF();
+    }
+
+  }
+
+  Future<void> savePDF() async {
+    Uint8List pdf;
+    //await pdf =
+    Directory directory = await getApplicationDocumentsDirectory();
+    String path = directory.path;
+    final file = File('${path}/pages.pdf');
+
+    file.writeAsBytes(await generateDocument(), flush: true);
+
+  }
+
 
   //When A house is selected, it goes here
   //Calls the new activity, which is the list of rooms located inside that house
@@ -275,56 +297,10 @@ class _MainAppState extends State<MainApp> {
                         key: Key('$position'),
                         onTap:  () => _selectHouse(snapshot.data![position]),
                         tileColor: position % 2 == 0 ? evenItemColor : oddItemColor,
-                        title: Text('${snapshot.data![position].house}')
-                    )
+                        title: Text('${snapshot.data![position].house}'),
+                        subtitle: Text('   Created on ' + DateFormat('dd-MM-yyyy').format(DateTime.fromMillisecondsSinceEpoch(snapshot.data![position].createdDate))),
+                    ),
 
-
-             /*       child: new GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () => _selectHouse(snapshot.data![position]),
-                      child: Column(
-                        children: <Widget>[
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: <Widget>[
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: <Widget>[
-                                  Padding(
-                                    padding: const EdgeInsets.fromLTRB(
-                                        12.0, 12.0, 12.0, 6.0),
-                                    child: Text(
-                                      snapshot.data![position].house,
-                                      style: TextStyle(
-                                          fontSize: 22.0,
-                                          fontWeight: FontWeight.bold),
-                                    ),
-                                  ),
-                              Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: Column(
-                                  mainAxisAlignment:
-                                  MainAxisAlignment.spaceEvenly,
-                                  children: <Widget>[
-                                    Container(
-                                      decoration: BoxDecoration(
-                                          color: Colors.black26,
-                                          borderRadius:
-                                          BorderRadius.circular(100)),
-                                      )
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          Divider(
-                            height: 2.0,
-                            color: Colors.grey,
-                          )
-                        ],
-                      ),]
-                    ))*/
                 );
               });
         } else {
@@ -351,15 +327,16 @@ class _MainAppState extends State<MainApp> {
             onPressed: _newHouse,
           ),*/
           PopupMenuButton<String>(
-            //   onSelected: _select, TODO add menus
-            //     icon: Icon(Icons.settings,
-            //     color: Colors.white),
+            onSelected: _selectOption, //TODO add menus
+                 icon: Icon(Icons.settings,
+                 color: Colors.white),
             itemBuilder: (BuildContext context) {
               return {
                 'Help',
                 'New House',
                 'Settings',
-                'About'
+                'About',
+                'ExportPDF'
               }.map((String choice) {
                 return PopupMenuItem<String>(
                   value: choice,

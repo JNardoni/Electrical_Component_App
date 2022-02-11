@@ -14,11 +14,6 @@ class RoomsListState extends StatefulWidget {
 
 //Home page - shows the list of rooms
 class _RoomsList extends State<RoomsListState> {
-//  late DatabaseComps dbComps; //Will contain a database for every component active in the HOUSE
-//  late DatabaseRooms dbRooms; //will contain a database for every room active in the house
-//  late Comps _comps;
-//  late Rooms _rooms;
-
 
   //Every house has two tables associated with it. When the house is selected, it comes here.
   //This activity shows a list of all rooms added into the house.
@@ -63,17 +58,6 @@ class _RoomsList extends State<RoomsListState> {
     setState(() {});
   }
 
-/*  Future<int> addComps(Comps comps) async {
-    return await this.dbComps.insertComp(comps);
-  }*/
-
-/*  Future<int> addRoom(Rooms room) async {
-    return await this.dbRooms.insertRoom(room);
-  }*/
-/*
-  Future<void> deleteRoom(Comps comps) async {
-    return await dbWorld.deleteComps_Room(room.room);
-  }*/
  //TODO go by string roomname vs comps
   void _selectRoom(String room) {
     //_rooms = rooms;
@@ -81,10 +65,6 @@ class _RoomsList extends State<RoomsListState> {
 
     Navigator.pushNamed(context, CompsListState.routeName, arguments: {'roomName': room});
   }
-
- // Future<int> updateRooms(Comps comps) async {
- //   return await this.dbHelper.updateHouse(house);
- // }
 
 
   Widget roomWidget() {
@@ -141,52 +121,6 @@ class _RoomsList extends State<RoomsListState> {
                         title: Text('${snapshot.data![position].room}')
 
                   )
-
-                /*    child: new GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: () => _selectRoom(snapshot.data![position].room),
-                        child: Column(
-                            children: <Widget>[
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: <Widget>[
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: <Widget>[
-                                      Padding(
-                                        padding: const EdgeInsets.fromLTRB(
-                                            12.0, 12.0, 12.0, 6.0),
-                                        child: Text(
-                                          snapshot.data![position].room,
-                                          style: TextStyle(
-                                              fontSize: 22.0,
-                                              fontWeight: FontWeight.bold),
-                                        ),
-                                      ),
-                                      Padding(
-                                        padding: const EdgeInsets.all(8.0),
-                                        child: Column(
-                                          mainAxisAlignment:
-                                          MainAxisAlignment.spaceEvenly,
-                                          children: <Widget>[
-                                            Container(
-                                              decoration: BoxDecoration(
-                                                  color: Colors.black26,
-                                                  borderRadius:
-                                                  BorderRadius.circular(100)),
-                                            )
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  Divider(
-                                    height: 2.0,
-                                    color: Colors.grey,
-                                  )
-                                ],
-                              ),]
-                        ))*/
                 );
               });
         } else {

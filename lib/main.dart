@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'dart:io';
 
+import 'package:downloads_path_provider/downloads_path_provider.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -38,7 +39,6 @@ part 'exportPDF.dart';
 String houseName = ""; //TODO pass it along instead of global
 //String roomName = "";
 late DatabaseHouses dbWorld;
-
 
 void main() {
   runApp(RoomsHomePage());
@@ -174,12 +174,13 @@ class _MainAppState extends State<MainApp> {
     if (option == 'ExportPDF') {
      // saveInStorage('testFile.pdf');
 
-      savePDF();
+      //savePDF();
     }
 
   }
 
-  Future<void> savePDF() async {
+  //Saves as a local directory
+ /* Future<void> savePDF() async {
     Uint8List pdf;
     //await pdf =
     Directory directory = await getApplicationDocumentsDirectory();
@@ -187,8 +188,29 @@ class _MainAppState extends State<MainApp> {
     final file = File('${path}/pages.pdf');
 
     file.writeAsBytes(await generateDocument(), flush: true);
+  }*/
 
+/*
+  //Saves as an external directory
+  Future<void> savePDF() async {
+    Uint8List pdf;
+    //await pdf =
+    //Directory ?directory = await getExternalStorageDirectory();
+
+    var status = await Permission.storage.status;
+    if (!status.isGranted) {
+      await Permission.storage.request();
+    }
+
+    if (status.isGranted) {
+      Directory saveDir = await DownloadsPathProvider.downloadsDirectory;
+      String savePath = saveDir.path;
+
+      final file = File('$savePath/house.pdf');
+      file.writeAsBytes(await generateDocument(), flush: true);
+    }
   }
+*/
 
 
   //When A house is selected, it goes here

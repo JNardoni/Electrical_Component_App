@@ -87,19 +87,28 @@ class DatabaseHouses {
     return queryResult.map((e) => Globals.fromMap(e)).toList();
   }
 
+  //CRUD HOUSE
+
+  //Retrieves everything about the house when given a housename.
+  //Used for exporting a house's comps to a PDF
+  Future<List<Comps>> retrieveCompsByHouse() async {
+    //   final List<Map<String, Object?>> queryResult = await worlddb.rawQuery("SELECT * FROM comps_list WHERE house = ?", [houseName]);
+
+    final List<Map<String, Object?>> queryResult = await worlddb.query("comps_list", where: 'house = ?', whereArgs: [houseName]);
+
+    return queryResult.map((e) => Comps.fromMap(e)).toList();
+  }
+
   //CRUD ROOMS
 
-
-  //TODO filter to one of each room test?
+  //Finds the distinct rooms when given a housename
   Future<List<Comps>> retrieveRooms() async {
     final List<Map<String, Object?>> queryResult = await worlddb.rawQuery("SELECT DISTINCT room FROM comps_list WHERE house = ?", [houseName]);
-  //  final List<Map<String, Object?>> queryResult = await worlddb.rawQuery("SELECT DISTINCT room FROM comps_list WHERE house = ?", [houseName]);
-    //final List<Map<String, Object?>> queryResult = await worlddb.rawQuery("SELECT * FROM comps_list WHERE house = ?", [houseName]);
-    //return queryResult.map((e) => Comps.fromMap(e)).toList();
 
 
     return queryResult.map((e) => Comps.roomsfromMap(e)).toList();
   }
+
 
   //CRUD COMPS
   //Table name for comps: comps_list
@@ -118,6 +127,7 @@ class DatabaseHouses {
     final List<Map<String, Object?>> queryResult = await worlddb.query("comps_list", where: 'house = ? AND room = ? AND isBasic = ?', whereArgs: [houseName, roomName, 1]);
     return queryResult.map((e) => Comps.fromMap(e)).toList();
   }
+
   Future<int> updateComps(Comps comp) async {
     int result = await worlddb.update(
       "comps_list",

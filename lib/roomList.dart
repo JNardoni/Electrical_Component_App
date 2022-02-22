@@ -52,7 +52,7 @@ class _RoomsList extends State<RoomsListState> {
 
     for (int i = 0; i < globals.basicComps.length; i++) {
       Comps comps = new Comps(house: houseName, room: name, comp: globals.basicComps[i], isBasic: 1);
-      await dbWorld.insertComp(comps); //TODO Untested, as opposed to calling another function for some reason
+      await dbWorld.insertComp(comps);
       //await addComps(comp);
     }
     setState(() {});
@@ -66,6 +66,24 @@ class _RoomsList extends State<RoomsListState> {
     Navigator.pushNamed(context, CompsListState.routeName, arguments: {'roomName': room});
   }
 
+  //Saves the pdf to an external directory in downloads
+  Future<void> _savePDF() async {
+
+    var status = await Permission.storage.status;
+    if (!status.isGranted) {
+      await Permission.storage.request();
+    }
+
+    if (status.isGranted) {
+      Directory saveDir = await DownloadsPathProvider.downloadsDirectory;
+      String savePath = saveDir.path;
+
+
+
+      final file = File('$savePath/$houseName.pdf');
+      file.writeAsBytes(await dataFromSQL(), flush: true);
+    }
+  }
 
   Widget roomWidget() {
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
@@ -134,9 +152,19 @@ class _RoomsList extends State<RoomsListState> {
   Widget build(BuildContext context) {
     return Scaffold(
         resizeToAvoidBottomInset: false,
-        appBar: AppBar(
-          title: Text('${houseName}'),
-        ),
+      appBar: AppBar(
+        // Here we take the value from the MyHomePage object that was created by
+        // the App.build method, and use it to set our appbar title.
+        title: Text('${houseName}'),
+        actions: <Widget>[
+                IconButton(
+            icon: Icon( Icons.document_scanner,
+                color: Colors.white
+            ),
+            onPressed: _savePDF,
+          ),
+        ],
+      ),
         body: Column(
           children: <Widget>[
             Expanded(

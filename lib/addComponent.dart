@@ -74,6 +74,7 @@ class _AddComp extends State<AddCompState> {
     if (lock) return;
     lock = true;
 
+    //Gets a list of all global adv comps.
     var list = await dbWorld.retrieveGlobals();
     if (list.isNotEmpty) {
       for (int i = 0; i < list.length; i++) {
@@ -81,6 +82,7 @@ class _AddComp extends State<AddCompState> {
       }
     }
 
+    //Removes comps which have already been added to the room from the list
     var clist = await dbWorld.retrieveAdvComps(roomName);
     if (clist.isNotEmpty) {
       for (int i = 0; i < clist.length; i++) {

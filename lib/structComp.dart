@@ -23,6 +23,11 @@ class Comps {
     return {'house' : house, 'room' : room, 'comp' : comp, 'count' : count, 'isBasic' : isBasic, 'desc' : desc};
   }
 
+  //Grabs the comp data, and converts it into a list used to generate the tables of the pdf
+  List<String> compToPDFList() {
+    return [house, room, comp, count.toString(), isBasic.toString(), desc.toString()];
+  }
+
 
   Comps.roomsfromMap(Map<String, dynamic> res)
       : room = res["room"];

@@ -1,6 +1,57 @@
 part of 'main.dart';
 
-Future<Uint8List> generateDocument() async {
+
+String monthToDate(int month) {
+  switch (month) {
+    case 1:
+      return "January";
+    case 2:
+      return "Febuary";
+    case 3:
+      return "March";
+    case 4:
+      return "April";
+    case 5:
+      return "May";
+    case 6:
+      return "June";
+    case 7:
+      return "July";
+    case 8:
+      return "August";
+    case 9:
+      return "September";
+    case 10:
+      return "October";
+    case 11:
+      return "November";
+    case 12:
+      return "December";
+    default:
+      return "";
+  }
+}
+
+//Grabs the house data from the sql databaase
+
+//TODO sort data by room/type/something, remove unneccesarry stuff
+Future<Uint8List> dataFromSQL() async {
+  List<List<String>> houseComps = List<List<String>>.empty(growable: true);
+
+  List<Comps>pdfComps = await dbWorld.retrieveCompsByHouse();
+
+  houseComps.add(["House", "Room", "Comp", "Count", "Is Basic", "Description"]);
+
+  while (pdfComps.isNotEmpty) {
+    houseComps.add(pdfComps[0].compToPDFList());
+    pdfComps.removeAt(0);
+  }
+  return await generateDocument(houseComps);
+}
+
+
+//Using the data from the database, generates the PDF document
+Future<Uint8List> generateDocument(List<List<String>> tableData) async {
   final doc = pw.Document(pageMode: PdfPageMode.outlines);
 
  // final font1 = await PdfGoogleFonts.openSansRegular();
@@ -18,9 +69,8 @@ Future<Uint8List> generateDocument() async {
       build: (context) {
         return pw.Padding(
           padding: const pw.EdgeInsets.only(
-            left: 60,
-            right: 60,
-            bottom: 30,
+            left: 10,
+            top: 10,
           ),
           child: pw.Column(
             children: [
@@ -28,40 +78,28 @@ Future<Uint8List> generateDocument() async {
               pw.RichText(
                   text: pw.TextSpan(children: [
                     pw.TextSpan(
-                      text: DateTime.now().year.toString() + '\n',
+                      text: monthToDate(DateTime.now().month) + ' ' +
+                            DateTime.now().day.toString() + ', ' +
+                            DateTime.now().year.toString() + '\n',
                       style: pw.TextStyle(
-                        fontWeight: pw.FontWeight.bold,
-                        color: PdfColors.grey600,
-                        fontSize: 40,
+                        color: PdfColors.black,
+                        fontSize: 14,
                       ),
                     ),
                     pw.TextSpan(
-                      text: 'Portable Document Format',
+
+                      text: '      '  + houseName +' household',
                       style: pw.TextStyle(
                         fontWeight: pw.FontWeight.bold,
-                        fontSize: 40,
+                        color: PdfColors.black,
+                        fontSize: 28,
                       ),
                     ),
-                  ])),
-              pw.Spacer(),
-              pw.Container(
-                alignment: pw.Alignment.topRight,
-                height: 150,
-                child: pw.PdfLogo(),
-              ),
+              ])),
               pw.Spacer(flex: 2),
-              pw.Align(
-                alignment: pw.Alignment.topLeft,
-                child: pw.UrlLink(
-                  destination: 'https://wikipedia.org/wiki/PDF',
-                  child: pw.Text(
-                    'https://wikipedia.org/wiki/PDF',
-                    style: const pw.TextStyle(
-                      color: PdfColors.pink100,
-                    ),
-                  ),
-                ),
+              pw.Table.fromTextArray(context: context, data: tableData
               ),
+
             ],
           ),
         );

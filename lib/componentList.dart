@@ -106,12 +106,12 @@ class _CompsList extends State<CompsListState> with TickerProviderStateMixin {
                             width: 30,
                             alignment: Alignment.centerRight,
                             child: TextButton(
-                              child: Text('+',
+                              child: Text('-',
                                 style: TextStyle(color: Colors.white),),
                               style: TextButton.styleFrom(
                                   minimumSize: Size(30, 20),
                                   backgroundColor: Colors.blueGrey),
-                              onPressed: () => {_add(snapshot.data![position])},
+                              onPressed: () => {_subtract(snapshot.data![position])},
                             )
                         ),
                         Container(
@@ -127,12 +127,12 @@ class _CompsList extends State<CompsListState> with TickerProviderStateMixin {
                             margin: const EdgeInsets.fromLTRB(0, 0, 5, 0),
                             alignment: Alignment.centerRight,
                             child: TextButton(
-                              child: Text('-',
+                              child: Text('+',
                                 style: TextStyle(color: Colors.white),),
                               style: TextButton.styleFrom(
                                   minimumSize: Size(30, 20),
                                   backgroundColor: Colors.blueGrey),
-                              onPressed: () => {_subtract(snapshot.data![position])},
+                              onPressed: () => {_add(snapshot.data![position])},
                             )
                         )
                       ],

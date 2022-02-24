@@ -320,7 +320,7 @@ class _MainAppState extends State<MainApp> {
                         onTap:  () => _selectHouse(snapshot.data![position]),
                         tileColor: position % 2 == 0 ? evenItemColor : oddItemColor,
                         title: Text('${snapshot.data![position].house}'),
-                        subtitle: Text('   Created on ' + DateFormat('dd-MM-yyyy').format(DateTime.fromMillisecondsSinceEpoch(snapshot.data![position].createdDate))),
+                        subtitle: Text('   Created on ' + DateFormat('MM-dd-yy').format(DateTime.fromMillisecondsSinceEpoch(snapshot.data![position].createdDate))),
                     ),
 
                 );

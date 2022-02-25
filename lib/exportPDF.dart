@@ -38,6 +38,10 @@ String monthToDate(int month) {
 Future<Uint8List> dataFromSQL() async {
   List<List<String>> houseComps = List<List<String>>.empty(growable: true);
 
+ // List<List<String>> basicComps = List<List<String>>.empty(growable: true);
+
+  //List<List<String>> advComps = List<List<String>>.empty(growable: true);
+
   List<Comps> pdfComps = await dbWorld.retrieveCompsByHouse();
 
   houseComps.add(["House", "Room", "Comp", "Count", "Is Basic", "Description"]);
@@ -47,9 +51,9 @@ Future<Uint8List> dataFromSQL() async {
     pdfComps.removeAt(0);
   }
 
-  houseComps = parseBasicData(houseComps);
+  return await parseHouseData(houseComps);
 
-  return await generateDocument(houseComps);
+  // generateDocument(houseComps);
 }
 
 //Parses basic data into a table, with the x axis as the basic components, and the y axis being the room name
@@ -62,7 +66,7 @@ Future<Uint8List> dataFromSQL() async {
 //                                    each component that was assigned to the house selected to save as a PDF
 //  Returns: a list<list<String>> Which amounts to a 2d array of for the basic components, in the style shown above
 //                              list list instead of array becasuse its the input format needed in the pdf generator
-List<List<String>> parseBasicData(List<List<String>> houseComps) {
+Future<Uint8List> parseHouseData(List<List<String>> houseComps) async {
 
   //Each room will have a place in two lists: basicComps and advComps. They will be in the same position in the two lists. The two
   //will be merged later if the room doesnt have enough adv comps to warrent having its own section
@@ -128,7 +132,7 @@ List<List<String>> parseBasicData(List<List<String>> houseComps) {
         }
       }
 
-      //---------If room doesnt exist yet----------
+      //---If room doesnt exist yet---
       //If the room doesnt exist, adds it to the grid.
       if (exists == 0) {
         // Creates the entire row: First position is the component, then 1 empty spot for each basic component component
@@ -144,31 +148,70 @@ List<List<String>> parseBasicData(List<List<String>> houseComps) {
     }
   }
 
-  //------------------Merges ADV comps into basic comps if needed ----------------------------
+  //------------------Merges ADV comps into basic comps if needed----------------------------
   //There are now 2 seperate lists, one storing basic components and one storing advanced comps. In order to minimize space, an attempt is made to merge
   //as many of the two lists as possible. Up to 3 advanced components can be placed into the basic list, filling up the empty column at the end of each
-  // basic list. Any room with additional adv comps will use
-  //its own section on a seperate table
+  // basic list. Any room with additional adv comps will use its own section on a separate table
 
-  for (int i = 1; i < advComps.length; i++) {
+  List<List<String>> advCompsTable = List<List<String>>.empty(growable: true); //holds the advanced comp table
+  advCompsTable.add(['Room', 'Unit', '#', '','Unit', '#', '','Unit', '#', '']); //initialize the table, seen below
+
+  //-------Adding adv components to the basic comps grid-------
+  for (int i = 1; i < advComps.length; i++) { //go through the entire advComps list, finding any with >1 and < 3 adv comps
     int l = advComps[i].length;
     if (l > 0 && l < 11) { //Looks for numbers greater than the current column, but not too high in order for the room to need an extra table
 
       String addStrng = '';
 
-      //Goes through the adv components of the room, adding the advanced components into the empty column in the basic components secion
+      //Goes through the adv components of the room, adding the advanced components into the empty column in the basic components section
       for (int j = 1; j < advComps[i].length; j+=3) {
 
         if (j != 1) {
           addStrng += ' | ';
         }
-        addStrng = addStrng + basicComps[i][14] + advComps[i][j] + ': ' + advComps[i][j+1] + '  ' + advComps[i][j+2];
+        addStrng = addStrng + advComps[i][j] + ': ' + advComps[i][j+1] + '  ' + advComps[i][j+2]; //adds the adv comp info to a string
       }
-      basicComps[i][14] = addStrng;
+      basicComps[i][14] = addStrng; //Adds the string to the final, blank column in the basic table
+      advComps[i].clear(); //Clears out all information from the advanced tables that are being used in the basic table
+    }
+    else if (l ==0) { //If there are no adv comps in a room
+      advComps[i].clear(); //Clears the name from the adv component list
+    }
+    //If there are too many adv comps in a room.....
+    //--------Setup the Adv comp table--------
+    //Once every adv comp that can be is added to the basic list, begins to transfer the adv comp list to be suited for the gridstyle that adv comps use
+    //This style has a different format than the basiccomp grid. It is setup as:
+    //Room Name | Comp Name 1 | # | Description | Comp Name 2 | # | Desc 2 | Name 3 | # | Desc 3
+    //  Kitchen |   Fan       | 2 | Ceiling     |    Stove    | 1 | gas    | Oven   | 1 | inlaid
+    //  Kitchen |   Fridge    | 1 | double      |             |   |        |        |   |
+    //
+    // Bathroom |   etc..
+    //There will be one row of space between each rooms components
+    else if (l > 10) {
+      for (int j = 1; j < advComps[i].length; j+=9) {
+        if (advCompsTable.length > 1) { //Adds a line seperator between rooms
+          advCompsTable.add(['']); //Adds a blank space for the empty row between rooms
+        }
+
+        List<String> advAdd = List<String>.empty(growable: true); //Single list to keep track of each row to be added
+
+        int loops = 0; //Makes sure too many loops arent used
+        int k = j;
+
+        advAdd.add(advComps[i][0]); //Adds the room name into the first column
+
+        while (loops < 9 && k < advComps[i].length) { //Can add up to 3 components per row, each with three points of data
+            advAdd.add(advComps[i][k]); //Adds the
+            loops++; //Makes sure it doesnt add too many columns
+            k++;  //Makes sure there is still info
+        }
+
+        advCompsTable.add(advAdd);
+      }
     }
   }
+  return await generateDocument(basicComps, advCompsTable);
 
-  return basicComps;
 }
 
 //Finds the location that the basic component will be located within the grid on the pdf
@@ -189,75 +232,75 @@ int findBasicCompLocation(String basicCompName) {
 }
 
 
-List<List<String>> parseAdvData(List<List<String>> houseComps) {
 
-  List<List<String>> advComps = List<List<String>>.empty(growable: true);
+pw.Widget _buildHeader(pw.Context context) {
+  return pw.Row (
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Container(
+          height: 50,
+          child: pw.Text(monthToDate(DateTime.now().month) + ' ' +
+              DateTime.now().day.toString() + ', ' +
+              DateTime.now().year.toString() + '\n'),
 
-
-
-
-  return advComps;
+          ),
+        pw.Spacer(),
+        pw.Container(
+          height: 50,
+          child: pw.Text(houseName +' household'),
+        ),
+        pw.Spacer(),
+      ]
+  );
 }
 
 //Using the data from the database, generates the PDF document
-Future<Uint8List> generateDocument(List<List<String>> tableData) async {
+Future<Uint8List> generateDocument(List<List<String>> basicComps, List<List<String>> advComps) async {
   final doc = pw.Document(pageMode: PdfPageMode.outlines);
 
  // final font1 = await PdfGoogleFonts.openSansRegular();
  // final font2 = await PdfGoogleFonts.openSansBold();
 
+  //--------------------------------First Page - Basic Component grid-----------------------------
   //First page - all basic components, and if a room only has up to three advanced components
   doc.addPage(
-    pw.Page(
+    pw.MultiPage(
       pageTheme: pw.PageTheme(
         orientation: pw.PageOrientation.landscape,
-        theme: pw.ThemeData.withFont(
-         // base: font1,
-        //  bold: font2,
-        ),
       ),
-      build: (context) {
-        return pw.Padding(
-          padding: const pw.EdgeInsets.only(
-            left: 10,
-            top: 10,
-          ),
-          child: pw.Column(
-            children: [
-              pw.Spacer(),
-              pw.RichText(
-                  text: pw.TextSpan(children: [
-                    pw.TextSpan(
-                      text: monthToDate(DateTime.now().month) + ' ' +
-                            DateTime.now().day.toString() + ', ' +
-                            DateTime.now().year.toString() + '\n',
-                      style: pw.TextStyle(
-                        color: PdfColors.black,
-                        fontSize: 14,
-                      ),
-                    ),
-                    pw.TextSpan(
-
-                      text: '      '  + houseName +' household',
-                      style: pw.TextStyle(
-                        fontWeight: pw.FontWeight.bold,
-                        color: PdfColors.black,
-                        fontSize: 28,
-                      ),
-                    ),
-              ])),
-              pw.Spacer(),
-              pw.Table.fromTextArray(context: context, data: tableData
-              ),
-
-            ],
-          ),
-        );
-      },
+      header: _buildHeader,
+      build: (context) => [
+        pw.Column(
+          children: [
+            pw.Table.fromTextArray(context: context, data: basicComps
+            ),
+          ],
+        )
+      ]
     ),
   );
 
-
+  //---------------------------------Pages 2+ (if necessary) - Advanced components--------------------
+  //Goes through the list of advanced components. Any rooms with 3 or fewer components will have had their respective lists cleared,
+  //leaving only rooms with >3. These rooms will each have separate grids created.
+  if (advComps.length > 1) {
+    doc.addPage(
+      pw.MultiPage(
+          pageTheme: pw.PageTheme(
+            orientation: pw.PageOrientation.landscape,
+          ),
+          header: _buildHeader,
+          build: (context) => [
+            pw.Column(
+              children: [
+                pw.Table.fromTextArray(context: context, data: advComps
+                ),
+              ],
+            )
+          ]
+      ),
+    );
+  }
 
   return await doc.save();
 }

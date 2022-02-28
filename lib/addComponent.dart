@@ -15,54 +15,57 @@ class AddCompState extends StatefulWidget {
 
 
 //New component page. Opened when the '+' button is pressed in the component page
+/* Allows the user to do a few actions
+    1. Select items from a list of components, which adds them to the advanced components in the room
+    2. Add items to this and EVERY future list of components. When used
+    3. Add items to ONLY this rooms list of components
+
+ */
 //Allows user to select multiple components, and add them to the main page
 class _AddComp extends State<AddCompState> {
-
-  //Rooms house = houseList.houses[currentHouse];
 
   List<String> advCompsAdd = []; //List of global adv comps which arent in the room
   List<String> changes = [];  //list of changes which have been selected to be added to the room
 
- // late DatabaseComps dbComps;
- // late DatabaseGlobals dbGlobals;
-
-  TextEditingController _backArrowController = TextEditingController();
+  //TextEditingController _backArrowController = TextEditingController();
   TextEditingController _userAddCompController = TextEditingController();
-  bool lock = false; //On setup, ensures that the _adv comps is called once and only once
+  bool lock = false; //On setup, ensures that the _advcomps is called once and only once
 
   String errorText = "";
   String roomName = "";
 
-
+  //State initialization
+  //Calls the initialize, and sets up the list of unused components, which are added to the main selection screen
   @override
   void initState() {
     super.initState();
-
     setState(() {});
 
     fetchUnusedComps();
   }
 
+  //Returns a boolean of whether an item in the list is selected or not
+  //  PARAMS - String - name of the object being questioned
   bool _isSelected(String str) {
     return changes.contains(str);
   }
 
+  //Toggles the objeects selection status. If selected, deselects it. Otherwise selects it
+  // PARAMS - String - name of object to select/deselect
   void _setSelected(String str) {
     setState(() {
-      if (changes.contains(str)) {
+      if (changes.contains(str)) { //If selected, removes it from the selection list
         changes.remove(str);
       }
-      else {
+      else {  //otherwise, adds it to the selection list
         changes.add(str);
       }
     });
   }
 
+  //Confirms that the components should be added to the list
+  //Returns to the previous activity with the list of components to add
   void _confirmComps() {
-    for(int i = 0; i < changes.length; i++) {
-    }
-
-    //Navigator.of(context).pop();
     Navigator.pop(context, changes);
   }
 
@@ -71,11 +74,11 @@ class _AddComp extends State<AddCompState> {
   //Next, gets the list of comps added to this room, and removes them from the globals list
   Future<void> fetchUnusedComps() async {
 
-    if (lock) return;
+    if (lock) return; //Ensures it only runs once
     lock = true;
 
-    //Gets a list of all global adv comps.
-    var list = await dbWorld.retrieveGlobals();
+    //Gets a list of all global adv comps
+    var list = await dbWorld.retrieveGlobals(); //list of all global adv comps
     if (list.isNotEmpty) {
       for (int i = 0; i < list.length; i++) {
         advCompsAdd.add(list[i].name);
@@ -83,7 +86,7 @@ class _AddComp extends State<AddCompState> {
     }
 
     //Removes comps which have already been added to the room from the list
-    var clist = await dbWorld.retrieveAdvComps(roomName);
+    var clist = await dbWorld.retrieveAdvComps(roomName); //list of all adv comps in the room
     if (clist.isNotEmpty) {
       for (int i = 0; i < clist.length; i++) {
         advCompsAdd.remove(clist[i].comp);
@@ -102,20 +105,21 @@ class _AddComp extends State<AddCompState> {
       return false;
     }
 
+    //Adds the name of the new component to the list of advanced components the room uses, and then sets it to selected
     advCompsAdd.add(_userAddCompController.text);
     _setSelected(_userAddCompController.text);
 
-    if (i == 1) {
-      //globals.advComps.add(_userAddCompController.text);
-
-      addGlobalToTable(_userAddCompController.text);
+    if (i == 1) { //If added to global list, adds it into the table
+      addToGlobal(_userAddCompController.text);
     }
 
     _userAddCompController.text = "";
     return true;
   }
 
-  Future<void> addGlobalToTable(String name) async {
+  //Adds a new user component to the global component table
+  //  PARAMS - String - name of component to add
+  Future<void> addToGlobal(String name) async {
     Globals globalsC = new Globals(name: name);
     await dbWorld.insertGlobals(globalsC);
   }
@@ -131,8 +135,9 @@ class _AddComp extends State<AddCompState> {
     fetchUnusedComps();
 
     return Scaffold(
+      //-----------Title and icons------
       appBar: AppBar(
-          title: Text("Adding to " + roomName),
+          title: Text("Adding to " + roomName), //Title
           leading:
           IconButton(
             icon: Icon(Icons.arrow_back),
@@ -145,7 +150,6 @@ class _AddComp extends State<AddCompState> {
                     context: context,
                     builder: (BuildContext context) {
                       return AlertDialog(
-
                         title: new Text(
                             "Are you sure you want to go back to the room page? Additions will not be saved"),
                         actions: <Widget>[
@@ -223,8 +227,8 @@ class _AddComp extends State<AddCompState> {
             ),
           ]
       ),
+      //------Main body, a list of components to be added------
       body: ListView (
-
         children: <Widget> [
           for (int index = 0; index < advCompsAdd.length; index++)
             Dismissible(
@@ -249,7 +253,7 @@ class _AddComp extends State<AddCompState> {
                     builder: (BuildContext context) {
                       return AlertDialog(
                         title: const Text("Delete Confirmation"),
-                        content: const Text("Are you sure you want to delete this component?"),
+                        content: const Text("Are you sure you want to delete this component?"), //does nothing yet...
                         actions: <Widget>[
                           // ignore: deprecated_member_use
                           FlatButton(
@@ -266,27 +270,16 @@ class _AddComp extends State<AddCompState> {
                     },
                   );
                 },
-                child: ListTile(
+                child: ListTile(  //Each tile has its respective index
                     key: Key('$index'),
-                    onTap: () => _setSelected(advCompsAdd[index]),
-                    title: Text('${advCompsAdd[index]}'),
-                    tileColor: _isSelected(advCompsAdd[index]) ? Colors.green : Colors.white,
+                    onTap: () => _setSelected(advCompsAdd[index]),  //Sets selected, sends name of the comp
+                    title: Text('${advCompsAdd[index]}'), //Only displays component name
+                    tileColor: _isSelected(advCompsAdd[index]) ? Colors.green : Colors.white, //Green if selected, white if not
                 )
             )
         ],
       ),//;//);
-/*
-      body: ListView.builder(
-          itemCount: advCompsAdd.length,
-          itemBuilder: (BuildContext context, int index) {
-            return ListTile(
-              title: Text('${advCompsAdd[index]}'),
-              tileColor: _isSelected(advCompsAdd[index]) ? Colors.green : Colors.white,
-              onTap: () => _setSelected(advCompsAdd[index]),
-            );
-          }
-      ),
-*/
+      //Confirm changes button. No pop up, just adds
       floatingActionButton: FloatingActionButton(
         onPressed: _confirmComps,
         tooltip: 'Confirm changes',

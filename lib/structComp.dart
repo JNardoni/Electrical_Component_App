@@ -1,5 +1,14 @@
 part of 'main.dart';
 
+/*--------------------GLOBALS CLASS-------------------------
+
+Stores two variables - The global name and whether its a basic component or not
+
+ Created when new globals are added to the database, as well as when globals are
+ being gathered from the database in addComponent.dart
+
+ */
+
 class Comps {
 
   String house = "";
@@ -28,10 +37,11 @@ class Comps {
     return [house, room, comp, count.toString(), isBasic.toString(), desc.toString()];
   }
 
-
+  //Converts an object from SQL map to class for display
   Comps.roomsfromMap(Map<String, dynamic> res)
       : room = res["room"];
 
+  //Creates a map of the class objects for uploading to the SQL database
   Map<String, Object?> roomstoMap() {
     return {'room' : room};
   }

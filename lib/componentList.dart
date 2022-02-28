@@ -31,13 +31,12 @@ class _CompsList extends State<CompsListState> with TickerProviderStateMixin {
     super.initState();
 
     _tabController = TabController(length: 2, vsync: this);
-    //  this.dbComps = DatabaseComps();
-    //  this.dbComps.initCompsDB().whenComplete(() async {
+
     setState(() {});
 
   }
 
-  //TODO
+  //TODO settings input
   void _select(String choice) {
 
   }

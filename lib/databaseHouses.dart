@@ -87,64 +87,14 @@ class DatabaseHouses {
     return queryResult.map((e) => Globals.fromMap(e)).toList();
   }
 
-  //CRUD HOUSE
+  //----------CRUD HOUSE---------
+  //Only needs to be able to retrieve and destroy. Creating and updating are done one component at a time in component CRUD
 
   //Retrieves everything about the house when given a housename.
   //Used for exporting a house's comps to a PDF
   Future<List<Comps>> retrieveCompsByHouse() async {
-    //   final List<Map<String, Object?>> queryResult = await worlddb.rawQuery("SELECT * FROM comps_list WHERE house = ?", [houseName]);
-
     final List<Map<String, Object?>> queryResult = await worlddb.query("comps_list", where: 'house = ?', whereArgs: [houseName]);
-
     return queryResult.map((e) => Comps.fromMap(e)).toList();
-  }
-
-  //CRUD ROOMS
-
-  //Finds the distinct rooms when given a housename
-  Future<List<Comps>> retrieveRooms() async {
-    final List<Map<String, Object?>> queryResult = await worlddb.rawQuery("SELECT DISTINCT room FROM comps_list WHERE house = ?", [houseName]);
-
-
-    return queryResult.map((e) => Comps.roomsfromMap(e)).toList();
-  }
-
-
-  //CRUD COMPS
-  //Table name for comps: comps_list
-
-  Future<int> insertComp(Comps comp) async {
-    int result = await worlddb.insert("comps_list", comp.toMap());
-    return result;
-  }
-
-  Future<List<Comps>> retrieveAdvComps(String roomName) async {
-    final List<Map<String, Object?>> queryResult = await worlddb.query("comps_list", where: 'house = ? AND room = ? AND isBasic = ?', whereArgs: [houseName, roomName, 0]);
-    return queryResult.map((e) => Comps.fromMap(e)).toList();
-  }
-
-  Future<List<Comps>> retrieveBasicComps(String roomName) async {
-    final List<Map<String, Object?>> queryResult = await worlddb.query("comps_list", where: 'house = ? AND room = ? AND isBasic = ?', whereArgs: [houseName, roomName, 1]);
-    return queryResult.map((e) => Comps.fromMap(e)).toList();
-  }
-
-  Future<int> updateComps(Comps comp) async {
-    int result = await worlddb.update(
-      "comps_list",
-      comp.toMap(),
-      where: "house = ? AND room = ? AND comp = ?",
-      whereArgs: [comp.house, comp.room, comp.comp],
-    );
-    return result;
-  }
-
-  //Deletes an entire room, removing all associated comps
-  Future<void> deleteComps_Room(String roomName) async {
-    await worlddb.delete(
-      "comps_list",
-      where: "room = ?",
-      whereArgs: [roomName],
-    );
   }
 
   //Deletes an entire house, removing all associated comps
@@ -155,6 +105,65 @@ class DatabaseHouses {
       whereArgs: [roomName],
     );
   }
+
+  //---------CRUD ROOMS---------
+  //Only needs to be able to retrieve and destroy. Creating and updating are done one component at a time in component CRUD
+
+  //Finds the distinct rooms when given a housename
+  Future<List<Comps>> retrieveRooms() async {
+    final List<Map<String, Object?>> queryResult = await worlddb.rawQuery("SELECT DISTINCT room FROM comps_list WHERE house = ?", [houseName]);
+    return queryResult.map((e) => Comps.roomsfromMap(e)).toList();
+  }
+
+  //Deletes an entire room, removing all associated comps
+  //  PARAMS - String - Roomname
+  Future<void> deleteComps_Room(String roomName) async {
+    await worlddb.delete(
+      "comps_list",
+      where: "room = ?",
+      whereArgs: [roomName],
+    );
+  }
+
+  //---------CRUD COMPS-----------
+  //Table name for comps: comps_list
+
+  //Adds a component to the database. The component is defined by the house name, room name, and component name. They cannot be changed
+  //  The isbasic flag is static, but the count and description are updated persistently
+  Future<int> insertComp(Comps comp) async {
+    int result = await worlddb.insert("comps_list", comp.toMap());
+    return result;
+  }
+
+  //Retrieves all advanced components for a room from the database
+  //  PARAMS - String - Roomname to receive
+  Future<List<Comps>> retrieveAdvComps(String roomName) async {
+    final List<Map<String, Object?>> queryResult = await worlddb.query("comps_list", where: 'house = ? AND room = ? AND isBasic = ?', whereArgs: [houseName, roomName, 0]);
+    return queryResult.map((e) => Comps.fromMap(e)).toList();
+  }
+
+  //Retrieves all basic components for an entire room.
+  //  PARAMS - String - roomname
+  Future<List<Comps>> retrieveBasicComps(String roomName) async {
+    final List<Map<String, Object?>> queryResult = await worlddb.query("comps_list", where: 'house = ? AND room = ? AND isBasic = ?', whereArgs: [houseName, roomName, 1]);
+    return queryResult.map((e) => Comps.fromMap(e)).toList();
+  }
+
+  //Updates the component. Static housename, room name, and component name
+  //        Updates either the count or the description of the component
+  Future<int> updateComps(Comps comp) async {
+    int result = await worlddb.update(
+      "comps_list",
+      comp.toMap(),
+      where: "house = ? AND room = ? AND comp = ?",
+      whereArgs: [comp.house, comp.room, comp.comp],
+    );
+    return result;
+  }
+
+
+
+
 
 
 }

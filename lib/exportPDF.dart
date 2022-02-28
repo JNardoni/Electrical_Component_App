@@ -1,6 +1,6 @@
 part of 'main.dart';
 
-
+//Takes the numercal version of month, returns the string
 String monthToDate(int month) {
   switch (month) {
     case 1:

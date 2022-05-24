@@ -1,16 +1,13 @@
-# electric_flutter
+# Electrical Component Tracking
 
-A new Flutter application.
+As electricians look through a property, whether for planning a fix, expansion, or rework, they must record the different
+electrical components located throughout. Outlets, sockets, overheads, etc. As opposed to writing these out on a notepad,
+this app allows a user to do each of the steps quickly, including:
 
-## Getting Started
+1. Create and store a new property
+2. Add new rooms to said property
+3. Add, remove, and comment on components on a room by room basis
+4. Export the building to a PDF
 
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://flutter.dev/docs/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://flutter.dev/docs/cookbook)
-
-For help getting started with Flutter, view our
-[online documentation](https://flutter.dev/docs), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+All of this information is persistenetly stored in an SQLite database. This ensures that all information is saved and 
+displayed accurately.
